@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShieldScan — Smart Contract Vulnerability Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0c0c0e;--bg2:#111114;--surface:#18181c;--surface2:#1e1e24;--surface3:#26262e;--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--yellow:#FFB800;--yellow-dim:rgba(255,184,0,.12);--red:#FF4444;--red-dim:rgba(255,68,68,.12);--orange:#FF8C00;--orange-dim:rgba(255,140,0,.12);--amber:#FFAA00;--amber-dim:rgba(255,170,0,.12);--green:#00D68F;--green-dim:rgba(0,214,143,.12);--blue:#3B82F6;--blue-dim:rgba(59,130,246,.12);--text:#F0F0F2;--text2:#8E8E9A;--text3:#5A5A66}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.bg-grid{position:fixed;top:0;left:0;right:0;bottom:0;background-image:linear-gradient(rgba(255,184,0,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,184,0,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.glow{position:fixed;top:-200px;right:20%;width:500px;height:500px;background:radial-gradient(circle,rgba(255,184,0,.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* Navbar */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
+.nav-left{display:flex;align-items:center;gap:28px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo svg{width:28px;height:28px}
+.logo-text{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
+.logo-text span{color:var(--yellow)}
+.nav-links{display:flex;gap:4px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--text2);padding:6px 14px;border-radius:8px;text-decoration:none}
+.nav-links a.active{color:var(--text);background:var(--surface2)}
+.btn-connect{font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;padding:8px 16px;border-radius:8px;border:none;background:var(--yellow);color:#000;cursor:pointer;display:flex;align-items:center;gap:6px}
+
+/* Main */
+.main{display:flex;flex:1;min-height:0}
+
+/* Code Panel */
+.code-panel{width:48%;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)}
+.code-top{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border)}
+.file-tab{display:flex;align-items:center;gap:6px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text);padding:6px 12px;border-radius:6px;background:var(--surface2)}
+.file-tab .dot{width:7px;height:7px;border-radius:50%;background:var(--yellow)}
+.code-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+textarea{flex:1;width:100%;background:transparent;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.85;padding:16px 20px;resize:none;outline:none}
+textarea::placeholder{color:var(--text3)}
+.code-footer{padding:8px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.btn-scan{font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;padding:10px 28px;border-radius:8px;border:none;background:var(--yellow);color:#000;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s}
+.btn-scan:hover{background:#e6a600;transform:translateY(-1px)}
+.btn-example{font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border2);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* Results */
+.results{flex:1;display:flex;flex-direction:column;background:var(--bg);overflow-y:auto}
+.scan-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border)}
+.status{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.status.active .dot{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.status span{color:var(--text2);font-weight:400}
+.scan-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);background:var(--surface);padding:4px 10px;border-radius:6px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border)}
+.stat{padding:16px 20px;text-align:center;border-right:1px solid var(--border);position:relative}
+.stat:last-child{border-right:none}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.stat.s-total::after{background:var(--yellow)}
+.stat.s-crit::after{background:var(--red)}
+.stat.s-high::after{background:var(--orange)}
+.stat.s-med::after{background:var(--amber)}
+.stat.s-low::after{background:var(--green)}
+.stat-val{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700}
+.stat-val.v-total{color:var(--yellow)}
+.stat-val.v-crit{color:var(--red)}
+.stat-val.v-high{color:var(--orange)}
+.stat-val.v-med{color:var(--amber)}
+.stat-val.v-low{color:var(--green)}
+.stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin-top:4px}
+
+/* Findings */
+.findings{flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.findings-hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px}
+.findings-hdr h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text2)}
+.findings-hdr span{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icon.ci-crit{background:var(--red-dim)}
+.card-icon.ci-high{background:var(--orange-dim)}
+.card-icon.ci-med{background:var(--amber-dim)}
+.card-icon.ci-low{background:var(--green-dim)}
+.card-info{flex:1}
+.card-name{font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;margin-bottom:3px}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.card-desc code{background:var(--surface2);padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:4px 8px;border-radius:4px;letter-spacing:.8px;flex-shrink:0}
+.b-crit{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.b-high{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,140,0,.2)}
+.b-med{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
+.b-low{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,.2)}
+.card-tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.t-line{background:var(--blue-dim);color:var(--blue)}
+.t-fix{background:var(--green-dim);color:var(--green)}
+.t-swc{background:var(--surface2);color:var(--text2)}
+
+/* Empty state */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:16px;padding:40px}
+.empty svg{opacity:.3}
+.empty p{font-size:14px;text-align:center;max-width:300px;line-height:1.6}
+.empty .kbd{background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--border2)}
+
+/* Footer */
+.foot{padding:10px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="glow"></div>
+
+<div class="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <div class="logo">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.97C22.88 30.95 28 23.73 28 16V8L16 2z" fill="rgba(255,184,0,.12)" stroke="#FFB800" stroke-width="1.5"/><path d="M12 16l3 3 5-6" stroke="#FFB800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="logo-text">Shield<span>Scan</span></div>
+      </div>
+      <div class="nav-links">
+        <a href="#" class="active">Scanner</a>
+        <a href="#">Exploits DB</a>
+        <a href="#">Learn</a>
+        <a href="#">API</a>
+      </div>
+    </div>
+    <button class="btn-connect" onclick="alert('Wallet connection coming soon!')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Connect Wallet
+    </button>
+  </nav>
+
+  <div class="main">
+    <!-- Code Input -->
+    <div class="code-panel">
+      <div class="code-top">
+        <div class="file-tab"><span class="dot"></span><span id="filename">paste_contract.sol</span></div>
+        <div class="code-meta" id="linemeta">0 lines</div>
+      </div>
+      <textarea id="code" placeholder="// Paste your Solidity smart contract here...&#10;// Or click 'Load Example' to try a demo contract.&#10;&#10;pragma solidity ^0.8.19;&#10;&#10;contract MyContract {&#10;    // ...&#10;}" spellcheck="false"></textarea>
+      <div class="code-footer">
+        <button class="btn-example" onclick="loadExample()">Load Example</button>
+        <button class="btn-scan" onclick="runScan()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Scan Contract
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="scan-bar">
+        <div class="status" id="status">
+          <div class="dot"></div>
+          <div>Waiting for input</div>
+        </div>
+        <div class="scan-chip" id="timechip">—</div>
+      </div>
+      <div class="stats" id="statsbar" style="display:none">
+        <div class="stat s-total"><div class="stat-val v-total" id="s-total">0</div><div class="stat-lbl">Findings</div></div>
+        <div class="stat s-crit"><div class="stat-val v-crit" id="s-crit">0</div><div class="stat-lbl">Critical</div></div>
+        <div class="stat s-high"><div class="stat-val v-high" id="s-high">0</div><div class="stat-lbl">High</div></div>
+        <div class="stat s-med"><div class="stat-val v-med" id="s-med">0</div><div class="stat-lbl">Medium</div></div>
+        <div class="stat s-low"><div class="stat-val v-low" id="s-low">0</div><div class="stat-lbl">Low</div></div>
+      </div>
+      <div class="findings" id="findings">
+        <div class="empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6L12 2z"/></svg>
+          <p>Paste a Solidity contract on the left and click <span class="kbd">Scan Contract</span> to detect vulnerabilities.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <span>ShieldScan v1.0 · Open Source · MIT License</span>
+        <span>github.com/Carlys17/ShieldScan</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PATTERNS = [
+  { name:"Reentrancy Vulnerability", severity:"CRITICAL", swc:"SWC-107", regex:/\.call\{.*?value.*?\}\s*\(/, desc:"External call via .call{value} detected before state changes. Attacker can re-enter to drain funds.", fix:"Use Checks-Effects-Interactions pattern", checkAfter:true },
+  { name:"tx.origin Authentication", severity:"HIGH", swc:"SWC-115", regex:/(require|if)\s*\(.*tx\.origin/, desc:"Using tx.origin for auth is vulnerable to phishing attacks via intermediary contracts.", fix:"Replace with msg.sender" },
+  { name:"Delegatecall to Untrusted", severity:"CRITICAL", swc:"SWC-112", regex:/\.delegatecall\s*\(/, desc:"Delegatecall executes in caller context. Untrusted targets can modify storage arbitrarily.", fix:"Only delegatecall trusted contracts" },
+  { name:"Unprotected selfdestruct", severity:"CRITICAL", swc:"SWC-106", regex:/selfdestruct\s*\(/, desc:"selfdestruct can destroy contract and send ETH to arbitrary address.", fix:"Add onlyOwner modifier" },
+  { name:"Unchecked Call Return", severity:"HIGH", swc:"SWC-104", regex:/\.call\s*\(/, desc:"Return value of low-level call not checked. Silent failures possible.", fix:"Check bool return value" },
+  { name:"Timestamp Dependence", severity:"MEDIUM", swc:"SWC-116", regex:/block\.timestamp/, desc:"block.timestamp can be manipulated by miners within ~15 second window.", fix:"Avoid for critical logic" },
+  { name:"Floating Pragma", severity:"LOW", swc:"SWC-103", regex:/pragma\s+solidity\s*\^/, desc:"Floating pragma allows different compiler versions.", fix:"Lock to specific version" },
+  { name:"DoS with Gas Limit", severity:"MEDIUM", swc:"SWC-128", regex:/for\s*\(.*\.length/, desc:"Unbounded loop over dynamic array can exceed block gas limit.", fix:"Implement pagination" },
+  { name:"Missing Event Emission", severity:"MEDIUM", swc:"SWC-135", regex:/(balances|balance|totalSupply)\s*[\+\-\*]?=/, desc:"State changes without events hinder off-chain monitoring.", fix:"Emit events for state changes", checkEvent:true },
+  { name:"Use of send()", severity:"MEDIUM", swc:"SWC-134", regex:/\.send\s*\(/, desc:"send() only forwards 2300 gas and returns bool silently.", fix:"Use call{value}('') instead" },
+  { name:"Hardcoded Address", severity:"LOW", swc:"SWC-134", regex:/0x[a-fA-F0-9]{40}/, desc:"Hardcoded addresses reduce flexibility across networks.", fix:"Use constructor params" },
+];
+
+const EXAMPLE = `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract VulnerableVault {
+    mapping(address => uint256) public balances;
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function withdraw(uint256 amount) external {
+        require(balances[msg.sender] >= amount);
+        (bool ok,) = msg.sender.call{value: amount}("");
+        require(ok);
+        balances[msg.sender] -= amount;
+    }
+
+    function setOwner(address _new) public {
+        require(tx.origin == owner);
+        owner = _new;
+    }
+
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function isExpired() view public returns (bool) {
+        return block.timestamp > 1700000000;
+    }
+
+    receive() external payable {}
+}`;
+
+const codeEl = document.getElementById('code');
+const metaEl = document.getElementById('linemeta');
+
+codeEl.addEventListener('input', () => {
+  const lines = codeEl.value.split('\n').length;
+  metaEl.textContent = lines + ' lines';
+});
+
+function loadExample() {
+  codeEl.value = EXAMPLE;
+  metaEl.textContent = EXAMPLE.split('\n').length + ' lines';
+}
+
+function runScan() {
+  const code = codeEl.value.trim();
+  if (!code) { alert('Please paste a Solidity contract first.'); return; }
+
+  const start = performance.now();
+  const lines = code.split('\n');
+  const findings = [];
+
+  lines.forEach((line, idx) => {
+    const stripped = line.trim();
+    if (stripped.startsWith('//') || stripped.startsWith('/*') || stripped.startsWith('*')) return;
+
+    PATTERNS.forEach(p => {
+      if (p.regex.test(line)) {
+        // Context checks
+        if (p.checkAfter) {
+          const after = lines.slice(idx+1, idx+5).join('\n');
+          if (!/\b\w+\[.*\]\s*[-+]?=/.test(after)) return;
+        }
+        if (p.checkEvent) {
+          const ctx = lines.slice(Math.max(0,idx-5), idx+5).join('\n');
+          if (/emit\s+\w+/.test(ctx)) return;
+        }
+        findings.push({ ...p, line: idx+1, code: stripped });
+      }
+    });
+  });
+
+  const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+
+  // Update status
+  const statusEl = document.getElementById('status');
+  statusEl.className = 'status active';
+  statusEl.innerHTML = '<div class="dot"></div><div>Scan Complete <span>· ' + lines.length + ' lines analyzed</span></div>';
+  document.getElementById('timechip').textContent = '⚡ ' + elapsed + 's · ' + PATTERNS.length + ' patterns';
+
+  // Stats
+  const stats = { total: findings.length, CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+  findings.forEach(f => stats[f.severity]++);
+  document.getElementById('statsbar').style.display = 'grid';
+  document.getElementById('s-total').textContent = stats.total;
+  document.getElementById('s-crit').textContent = stats.CRITICAL;
+  document.getElementById('s-high').textContent = stats.HIGH;
+  document.getElementById('s-med').textContent = stats.MEDIUM;
+  document.getElementById('s-low').textContent = stats.LOW;
+
+  // Findings
+  const findingsEl = document.getElementById('findings');
+  if (findings.length === 0) {
+    findingsEl.innerHTML = '<div class="findings-hdr"><h3>Security Findings</h3><span>0 issues</span></div><div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00D68F" stroke-width="1.5"><path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6L12 2z"/><path d="M9 12l2 2 4-4" stroke-width="2"/></svg><p style="color:var(--green)">No vulnerabilities detected. The contract looks clean!</p></div>';
+    return;
+  }
+
+  const sevOrder = { CRITICAL:0, HIGH:1, MEDIUM:2, LOW:3 };
+  findings.sort((a,b) => sevOrder[a.severity] - sevOrder[b.severity]);
+
+  const icons = {
+    CRITICAL: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    HIGH: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF8C00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    MEDIUM: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFAA00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+    LOW: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D68F" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  };
+
+  const sevClass = { CRITICAL:'crit', HIGH:'high', MEDIUM:'med', LOW:'low' };
+
+  let html = '<div class="findings-hdr"><h3>Security Findings</h3><span>' + findings.length + ' issues detected</span></div>';
+  findings.forEach(f => {
+    const sc = sevClass[f.severity];
+    html += `<div class="card"><div class="card-top"><div class="card-icon ci-${sc}">${icons[f.severity]}</div><div class="card-info"><div class="card-name">${f.name}</div><div class="card-desc">${f.desc}</div></div><div class="badge b-${sc}">${f.severity}</div></div><div class="card-tags"><span class="tag t-line">L:${f.line}</span><span class="tag t-fix">✓ ${f.fix}</span><span class="tag t-swc">${f.swc}</span></div></div>`;
+  });
+
+  findingsEl.innerHTML = html;
+}
+</script>
+</body>
+</html>
