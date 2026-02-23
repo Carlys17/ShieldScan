@@ -1,0 +1,4 @@
+# Dependencies for the benchmark module only.
+# The core ShieldScan scanner has zero external dependencies.
+pyyaml>=6.0
+requests>=2.28.0

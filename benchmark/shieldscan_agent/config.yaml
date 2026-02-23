@@ -1,0 +1,15 @@
+# ShieldScan Agent Configuration for EVMbench
+# =============================================
+# Place this directory inside evmbench/agents/ to register ShieldScan
+# as an agent in the EVMbench local evaluation framework.
+#
+# Usage:
+#   cp -r benchmark/shieldscan_agent/ <evmbench>/evmbench/agents/shieldscan/
+#   cp src/scanner.py <evmbench>/evmbench/agents/shieldscan/
+#   # Then run EVMbench with: --agent shieldscan
+
+shieldscan:
+  start: shieldscan/start.sh
+  instruction_file_name: AGENTS.md
+  env_vars: {}
+  gateway_sni_hosts: []

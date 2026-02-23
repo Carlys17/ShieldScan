@@ -1,0 +1,24 @@
+# EVMbench Benchmark Configuration for ShieldScan
+# ================================================
+
+# Source of EVMbench audit dataset
+# Option 1: Clone from GitHub (requires git)
+evmbench_repo: "openai/frontier-evals"
+audits_subpath: "project/evmbench/audits"
+
+# Option 2: Local path (if you've already cloned frontier-evals)
+# audits_dir: "/path/to/frontier-evals/project/evmbench/audits"
+
+# Output directory for benchmark results
+output_dir: "benchmark/results"
+
+# Whether to clone audit source repositories from evmbench-org/
+# Set to false if you've pre-cloned them or want to scan audit dirs only
+clone_repos: true
+
+# Specific audit IDs to benchmark (comment out to run all)
+# audit_ids:
+#   - "2023-07-pooltogether"
+#   - "2024-01-renft"
+#   - "2024-03-taiko"
+#   - "2024-04-noya"

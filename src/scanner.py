@@ -336,6 +336,45 @@ def format_json(scanner: ShieldScanner, filename: str, elapsed: float) -> str:
     }, indent=2)
 
 
+def format_evmbench(scanner: ShieldScanner, filename: str, elapsed: float) -> str:
+    """Format results as EVMbench submission (audit.md with JSON block).
+
+    Produces markdown containing a fenced JSON block conforming to the
+    EVMbench ReportModel schema used by paradigmxyz/evmbench.
+    """
+    vulnerabilities = []
+    for finding in scanner.findings:
+        vuln = {
+            "title": finding.name,
+            "severity": finding.severity.value.lower(),
+            "summary": finding.description,
+            "description": [
+                {
+                    "file": filename,
+                    "line_start": finding.line_number,
+                    "line_end": finding.end_line if finding.end_line else finding.line_number,
+                    "desc": f"{finding.name} ({finding.swc_id}): {finding.code_snippet}"
+                }
+            ],
+            "impact": finding.description,
+            "proof_of_concept": f"Detected at line {finding.line_number}: {finding.code_snippet}",
+            "remediation": finding.recommendation
+        }
+        vulnerabilities.append(vuln)
+
+    report = {"vulnerabilities": vulnerabilities}
+
+    output = []
+    output.append(f"# ShieldScan Audit Report — {filename}")
+    output.append("")
+    output.append(f"Scanner: ShieldScan v1.0.0 | Patterns: {len(PATTERNS)} | Time: {elapsed:.2f}s")
+    output.append("")
+    output.append("```json")
+    output.append(json.dumps(report, indent=2))
+    output.append("```")
+    return "\n".join(output)
+
+
 def format_markdown(scanner: ShieldScanner, filename: str, elapsed: float) -> str:
     """Format results as Markdown report."""
     summary = scanner.get_summary()
@@ -373,7 +412,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("file", help="Path to Solidity (.sol) file to scan")
-    parser.add_argument("-f", "--format", choices=["text", "json", "markdown"], default="text", help="Output format")
+    parser.add_argument("-f", "--format", choices=["text", "json", "markdown", "evmbench"], default="text", help="Output format (evmbench produces submission/audit.md format)")
     parser.add_argument("-o", "--output", help="Output file path (default: stdout)")
 
     args = parser.parse_args()
@@ -388,6 +427,7 @@ def main():
         "text": format_text,
         "json": format_json,
         "markdown": format_markdown,
+        "evmbench": format_evmbench,
     }
 
     result = formatters[args.format](scanner, args.file, elapsed)

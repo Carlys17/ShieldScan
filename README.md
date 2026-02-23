@@ -33,7 +33,8 @@ Built with the principle that **robust security defenses belong in the hands of 
 - **14+ Vulnerability Patterns** — Reentrancy, tx.origin, unchecked calls, integer overflow, and more
 - **SWC Registry Mapped** — Every finding linked to the Smart Contract Weakness Classification
 - **Severity Classification** — Critical, High, Medium, Low with actionable fix recommendations
-- **Multi-Format Output** — JSON, Markdown, and interactive HTML reports
+- **Multi-Format Output** — JSON, Markdown, EVMbench, and interactive HTML reports
+- **EVMbench Compatible** — Benchmark against real-world vulnerabilities from Paradigm/OpenAI
 - **Web UI** — Paste code and scan instantly in the browser
 - **CLI Tool** — Integrate into CI/CD pipelines and development workflows
 - **100% Open Source** — MIT licensed, free forever
@@ -88,18 +89,24 @@ python src/scanner.py examples/VulnerableVault.sol -f markdown -o report.md
 ```
 ShieldScan/
 ├── src/
-│   ├── scanner.py          # Core vulnerability scanner engine
-│   ├── patterns.py         # Vulnerability pattern definitions
-│   ├── reporter.py         # Report generation (JSON/MD/HTML)
-│   └── utils.py            # Helper utilities
+│   └── scanner.py                # Core vulnerability scanner engine
 ├── public/
-│   └── index.html          # Web app (single-file, no build needed)
+│   └── index.html                # Web app (single-file, no build needed)
 ├── examples/
-│   ├── VulnerableVault.sol  # Example vulnerable contract
-│   └── SafeVault.sol        # Example secure contract
+│   ├── VulnerableVault.sol       # Example vulnerable contract
+│   └── SafeVault.sol             # Example secure contract
+├── benchmark/
+│   ├── evmbench_adapter.py       # EVMbench format conversion & matching
+│   ├── evmbench_runner.py        # Benchmark orchestration pipeline
+│   ├── config.yaml               # Benchmark configuration
+│   ├── requirements.txt          # Benchmark dependencies (pyyaml, requests)
+│   └── shieldscan_agent/         # EVMbench agent integration
+│       ├── config.yaml           # Agent registration for EVMbench harness
+│       ├── start.sh              # Agent startup script
+│       └── aggregate.py          # Multi-file scan aggregation
 ├── docs/
-│   ├── screenshot.png       # App screenshot
-│   └── logo.svg             # ShieldScan logo
+│   ├── screenshot.png            # App screenshot
+│   └── logo.svg                  # ShieldScan logo
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -140,6 +147,65 @@ ShieldScan/
 - **CI/CD integration** — Automate security checks in your development pipeline
 - **Bug bounty recon** — Rapid assessment of target contracts on Immunefi, Code4rena, etc.
 
+## EVMbench Benchmark Integration
+
+ShieldScan supports [EVMbench](https://github.com/paradigmxyz/evmbench), the Paradigm/OpenAI smart contract security benchmark with 40 real-world audits and 100+ vulnerabilities from Code4rena contests.
+
+### EVMbench Output Format
+
+Generate EVMbench-compatible submission files:
+
+```bash
+python src/scanner.py contract.sol -f evmbench -o submission/audit.md
+```
+
+### Running the Benchmark
+
+Install benchmark dependencies (core scanner needs none):
+
+```bash
+pip install -r benchmark/requirements.txt
+```
+
+Run against the full EVMbench dataset:
+
+```bash
+python benchmark/evmbench_runner.py --config benchmark/config.yaml
+```
+
+Run against a specific audit:
+
+```bash
+python benchmark/evmbench_runner.py --audit-id 2023-07-pooltogether
+```
+
+Run against a local copy of the EVMbench dataset:
+
+```bash
+python benchmark/evmbench_runner.py --audits-dir /path/to/frontier-evals/project/evmbench/audits
+```
+
+Results are saved to `benchmark/results/` as `summary.json` and `summary.md`.
+
+### Using ShieldScan as an EVMbench Agent
+
+To register ShieldScan in the EVMbench local evaluation framework:
+
+1. Copy `benchmark/shieldscan_agent/` to `evmbench/agents/shieldscan/`
+2. Copy `src/scanner.py` into the agent directory
+3. Run the EVMbench evaluation with `--agent shieldscan`
+
+### Expected Performance
+
+ShieldScan uses regex-based pattern matching to detect 14 vulnerability classes. EVMbench ground truth contains complex, logic-level vulnerabilities from real Code4rena audit contests. Expected results:
+
+- **Recall**: Low (~2-8%). Most EVMbench vulnerabilities require semantic understanding beyond pattern matching.
+- **Precision**: Variable. ShieldScan may flag patterns that overlap with ground truth, but many will be false positives on large codebases.
+- **Strongest matches**: Reentrancy (SWC-107), access control issues (SWC-106), unchecked return values (SWC-104).
+- **Weakest areas**: Business logic bugs, economic exploits, cross-contract interactions, oracle manipulation.
+
+The benchmark is valuable as a baseline to measure improvement as ShieldScan's analysis capabilities grow.
+
 ## Limitations
 
 ShieldScan is a **static pattern-matching** scanner. It is not a replacement for:
@@ -169,6 +235,7 @@ MIT License — free to use, modify, and distribute.
 - [SWC Registry](https://swcregistry.io) — Smart Contract Weakness Classification
 - [OpenZeppelin](https://openzeppelin.com) — Security best practices
 - [Trail of Bits](https://www.trailofbits.com) — Slither & security research
+- [Paradigm](https://paradigm.xyz) — EVMbench smart contract security benchmark
 - [The Covenant of Humanistic Technologies](https://manifest.human.tech) — Universal Security principle
 
 ---
