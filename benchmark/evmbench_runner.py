@@ -11,7 +11,6 @@ Dependencies: pyyaml, requests
 """
 
 import argparse
-import csv
 import json
 import os
 import subprocess
@@ -334,7 +333,6 @@ def scan_audit(
         return None
 
     # Scan all files
-    scanner = ShieldScanner()
     all_findings: List[Finding] = []
 
     start_time = time.time()

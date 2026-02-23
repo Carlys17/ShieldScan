@@ -5,7 +5,7 @@ ShieldScan — Smart Contract Vulnerability Scanner
 A static analysis tool to detect common security vulnerabilities in Solidity smart contracts.
 
 Usage:
-    python scanner.py <file.sol> [-f json|markdown|text] [-o output_file]
+    python scanner.py <file.sol> [-f json|markdown|text|evmbench] [-o output_file]
 
 Author: Carlys17
 License: MIT
@@ -297,7 +297,6 @@ class ShieldScanner:
 def format_text(scanner: ShieldScanner, filename: str, elapsed: float) -> str:
     """Format results as colored terminal output."""
     summary = scanner.get_summary()
-    lines = len(scanner.findings)
 
     output = []
     output.append("")
