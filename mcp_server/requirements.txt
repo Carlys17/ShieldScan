@@ -1,0 +1,3 @@
+# Dependencies for the ShieldScan MCP server.
+# The core scanner has zero external dependencies.
+mcp>=1.0.0

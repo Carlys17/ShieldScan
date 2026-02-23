@@ -1,0 +1,15 @@
+# Hybrid Agent Configuration for EVMbench
+# ========================================
+# ShieldScan regex scan + Claude Code deep analysis
+#
+# Usage:
+#   cp -r benchmark/hybrid_agent/ <evmbench>/evmbench/agents/hybrid_shieldscan/
+#   cp src/scanner.py <evmbench>/evmbench/agents/hybrid_shieldscan/
+#   # Then run EVMbench with: --agent hybrid_shieldscan
+
+hybrid_shieldscan:
+  start: hybrid_shieldscan/start.sh
+  instruction_file_name: AGENTS.md
+  env_vars: {}
+  gateway_sni_hosts:
+    - api.anthropic.com

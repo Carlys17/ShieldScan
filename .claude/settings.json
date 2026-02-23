@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shieldscan": {
+      "command": "python",
+      "args": ["mcp_server/shieldscan_server.py"],
+      "cwd": "."
+    }
+  }
+}

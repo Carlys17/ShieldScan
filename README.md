@@ -35,6 +35,7 @@ Built with the principle that **robust security defenses belong in the hands of 
 - **Severity Classification** — Critical, High, Medium, Low with actionable fix recommendations
 - **Multi-Format Output** — JSON, Markdown, EVMbench, and interactive HTML reports
 - **EVMbench Compatible** — Benchmark against real-world vulnerabilities from Paradigm/OpenAI
+- **Claude Code Integration** — MCP server + `/security-scan` skill for AI-powered semantic analysis
 - **Web UI** — Paste code and scan instantly in the browser
 - **CLI Tool** — Integrate into CI/CD pipelines and development workflows
 - **100% Open Source** — MIT licensed, free forever
@@ -92,18 +93,30 @@ ShieldScan/
 │   └── scanner.py                # Core vulnerability scanner engine
 ├── public/
 │   └── index.html                # Web app (single-file, no build needed)
-├── examples/
-│   ├── VulnerableVault.sol       # Example vulnerable contract
-│   └── SafeVault.sol             # Example secure contract
+├── mcp_server/
+│   ├── shieldscan_server.py      # MCP server for Claude Code integration
+│   └── requirements.txt          # MCP server dependencies
+├── .claude/
+│   ├── settings.json             # MCP server registration
+│   └── skills/security-scan/
+│       └── SKILL.md              # /security-scan slash command
 ├── benchmark/
 │   ├── evmbench_adapter.py       # EVMbench format conversion & matching
 │   ├── evmbench_runner.py        # Benchmark orchestration pipeline
 │   ├── config.yaml               # Benchmark configuration
 │   ├── requirements.txt          # Benchmark dependencies (pyyaml, requests)
-│   └── shieldscan_agent/         # EVMbench agent integration
-│       ├── config.yaml           # Agent registration for EVMbench harness
-│       ├── start.sh              # Agent startup script
-│       └── aggregate.py          # Multi-file scan aggregation
+│   ├── shieldscan_agent/         # ShieldScan-only EVMbench agent
+│   │   ├── config.yaml
+│   │   ├── start.sh
+│   │   └── aggregate.py
+│   └── hybrid_agent/             # ShieldScan + Claude Code hybrid agent
+│       ├── config.yaml
+│       ├── start.sh
+│       ├── DETECT.md
+│       └── aggregate_hybrid.py
+├── examples/
+│   ├── VulnerableVault.sol       # Example vulnerable contract
+│   └── SafeVault.sol             # Example secure contract
 ├── docs/
 │   ├── screenshot.png            # App screenshot
 │   └── logo.svg                  # ShieldScan logo
@@ -206,6 +219,53 @@ ShieldScan uses regex-based pattern matching to detect 14 vulnerability classes.
 
 The benchmark is valuable as a baseline to measure improvement as ShieldScan's analysis capabilities grow.
 
+## Claude Code Security Integration
+
+ShieldScan integrates with [Claude Code](https://claude.com/claude-code) to combine fast regex-based scanning with AI-powered semantic analysis.
+
+### MCP Server
+
+Expose ShieldScan as tools callable by Claude Code via the Model Context Protocol:
+
+```bash
+# Install MCP dependencies
+pip install -r mcp_server/requirements.txt
+
+# Register with Claude Code
+claude mcp add shieldscan -- python mcp_server/shieldscan_server.py
+```
+
+Available tools: `scan_file`, `scan_code`, `scan_directory`, `get_patterns`.
+
+If you open the project in Claude Code, the MCP server is auto-registered via `.claude/settings.json`.
+
+### /security-scan Skill
+
+A slash command that runs ShieldScan first, then Claude performs deep semantic analysis:
+
+```bash
+# Inside Claude Code
+/security-scan examples/VulnerableVault.sol
+/security-scan contracts/
+```
+
+The skill combines ShieldScan's 14 regex patterns with AI analysis of business logic, cross-function data flow, economic attack vectors, and governance risks. Each finding is tagged as `[CONFIRMED]`, `[AI-DISCOVERED]`, or dismissed as false positive.
+
+### Hybrid EVMbench Agent
+
+A two-phase agent for EVMbench that uses ShieldScan as a fast pre-scan, then Claude Code for deep analysis:
+
+```bash
+# Copy to EVMbench
+cp -r benchmark/hybrid_agent/ <evmbench>/evmbench/agents/hybrid_shieldscan/
+cp src/scanner.py <evmbench>/evmbench/agents/hybrid_shieldscan/
+
+# Run with EVMbench
+# --agent hybrid_shieldscan
+```
+
+The hybrid approach provides ShieldScan findings as "hints" to Claude, pointing at potential hotspots. Claude then validates regex findings and discovers additional logic-level vulnerabilities, significantly improving both precision and recall.
+
 ## Limitations
 
 ShieldScan is a **static pattern-matching** scanner. It is not a replacement for:
@@ -236,6 +296,7 @@ MIT License — free to use, modify, and distribute.
 - [OpenZeppelin](https://openzeppelin.com) — Security best practices
 - [Trail of Bits](https://www.trailofbits.com) — Slither & security research
 - [Paradigm](https://paradigm.xyz) — EVMbench smart contract security benchmark
+- [Claude Code](https://claude.com/claude-code) — AI-powered code analysis via MCP
 - [The Covenant of Humanistic Technologies](https://manifest.human.tech) — Universal Security principle
 
 ---
