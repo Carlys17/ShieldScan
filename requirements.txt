@@ -1,2 +1,17 @@
-# ShieldScan dependencies
-# No external dependencies required - uses Python standard library only
+# ShieldScan Dependencies
+# Pin versions for reproducibility
+
+# Core
+requests>=2.31.0
+pydantic>=2.0.0
+
+# Blockchain
+web3>=6.0.0
+eth-account>=0.8.0
+
+# Security
+pycryptodome>=3.19.0
+
+# MCP
+fastapi>=0.104.0
+uvicorn>=0.24.0
